@@ -20,6 +20,14 @@ public class StringUtilTests : UnitTest
     }
 
     [Fact]
+    public void ToCombinedId_with_double_null_should_return_expected()
+    {
+        string result = StringUtil.ToCombinedId(null, null);
+
+        result.Should().Be("");
+    }
+
+    [Fact]
     public void ToCombinedId_with_value_and_null_should_return_expected()
     {
         string result = StringUtil.ToCombinedId("test", null);
