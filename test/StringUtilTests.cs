@@ -59,4 +59,19 @@ public class StringUtilTests : UnitTest
         result.Should().Be(" :test");
     }
 
+    [Fact]
+    public void GetQueryParameter_should_get_value()
+    {
+        string? result = StringUtil.GetQueryParameter("https://example.com/page?param1=value1&param2=value2&param3=value3", "param1");
+
+        result.Should().Be("value1");
+    }
+
+    [Fact]
+    public void GetQueryParameter_with_no_parameter_should_return_null()
+    {
+        string? result = StringUtil.GetQueryParameter("https://example.com/page", "param1");
+
+        result.Should().BeNull();
+    }
 }
