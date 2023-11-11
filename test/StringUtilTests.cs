@@ -74,4 +74,52 @@ public class StringUtilTests : UnitTest
 
         result.Should().BeNull();
     }
+
+    [Fact]
+    public void BuildStringFromTemplate_with_one_param()
+    {
+        string result = StringUtil.BuildStringFromTemplate("{test} blah", 3);
+
+        result.Should().Be("3 blah");
+    }
+
+    [Fact]
+    public void BuildStringFromTemplate_with_two_params()
+    {
+        string result = StringUtil.BuildStringFromTemplate("{test} blah {test}", 3, 4);
+
+        result.Should().Be("3 blah 4");
+    }
+
+    [Fact]
+    public void BuildStringFromTemplate_with_two_params_not_fully_braced()
+    {
+        string result = StringUtil.BuildStringFromTemplate("{test} blah {test", 3, 4);
+
+        result.Should().Be("3 blah {test");
+    }
+
+    [Fact]
+    public void BuildStringFromTemplate_with_null_param()
+    {
+        string result = StringUtil.BuildStringFromTemplate("{test} blah {bar}", 3, null, 5);
+
+        result.Should().Be("3 blah 5");
+    }
+
+    [Fact]
+    public void BuildStringFromTemplate_with_only_null_param()
+    {
+        string result = StringUtil.BuildStringFromTemplate("{test} blah {bar}", null);
+
+        result.Should().Be("{test} blah {bar}");
+    }
+
+    [Fact]
+    public void BuildStringFromTemplate_with_no_param()
+    {
+        string result = StringUtil.BuildStringFromTemplate("{test} blah {bar}");
+
+        result.Should().Be("{test} blah {bar}");
+    }
 }

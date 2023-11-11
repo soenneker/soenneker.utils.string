@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Web;
 using Soenneker.Extensions.Enumerable;
 using Soenneker.Extensions.NameValueCollection;
@@ -93,5 +95,52 @@ public class StringUtil
 
         Dictionary<string, string> result = queryParams.ToDictionary();
         return result;
+    }
+
+    /// <summary>
+    /// Similar to logging strings:
+    /// <code>logger.log("{variable} is a prime number", 2);</code> "2 is a prime number" 
+    /// </summary>
+    /// <returns>If the number of parameters does not match the number of values coming in, it will return the braced variable in the string</returns>
+    /// <param name="str"></param>
+    /// <param name="values"></param>
+    [Pure]
+    [return: NotNullIfNotNull("str")]
+    public static string? BuildStringFromTemplate(string? str, params object?[]? values)
+    {
+        if (str == null)
+            return null;
+
+        if (values.IsNullOrEmpty())
+            return str;
+
+        try
+        {
+            var i = 0;
+            while (i < values.Length)
+            {
+                var injectionValue = values[i++]?.ToString();
+
+                if (injectionValue == null)
+                    continue;
+
+                int start = str.IndexOf('{');
+                int end = str.IndexOf('}');
+                if (start >= 0 && end > start)
+                {
+                    str = str.Remove(start, end - start + 1).Insert(start, injectionValue);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return str;
+        }
+        catch
+        {
+            return str;
+        }
     }
 }
