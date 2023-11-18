@@ -39,10 +39,10 @@
 
         
 
-        <PackageReference Include="Soenneker.Extensions.Enumerable" Version="2.1.6" />
+        <PackageReference Include="Soenneker.Extensions.Enumerable" Version="2.1.8" />
 
-        <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="2.1.6" />
+        <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="2.1.11" />
 
-        <PackageReference Include="Soenneker.Extensions.String" Version="2.1.13" />
+        <PackageReference Include="Soenneker.Extensions.String" Version="2.1.18" />
     </ItemGroup>
 </Project>
