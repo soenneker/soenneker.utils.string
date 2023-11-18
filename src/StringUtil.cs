@@ -4,20 +4,25 @@ using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Web;
+using Microsoft.Extensions.Logging;
 using Soenneker.Extensions.Enumerable;
 using Soenneker.Extensions.NameValueCollection;
 using Soenneker.Extensions.String;
+using Soenneker.Utils.String.Abstract;
 
 namespace Soenneker.Utils.String;
 
-/// <summary>
-/// A utility library for useful String operations
-/// </summary>
-// ReSharper disable once ClassNeverInstantiated.Global
-public class StringUtil
+///<inheritdoc cref="IStringUtil"/>
+public class StringUtil : IStringUtil
 {
+    private readonly ILogger<StringUtil> _logger;
+
+    public StringUtil(ILogger<StringUtil> logger)
+    {
+        _logger = logger;
+    }
+
     /// <summary>
     /// For combining any number of strings with a ':' character between them.  Will filter out null or empty strings.
     /// </summary>
@@ -95,6 +100,30 @@ public class StringUtil
 
         Dictionary<string, string> result = queryParams.ToDictionary();
         return result;
+    }
+
+    public string? GetDomainFromEmail(string address)
+    {
+        try
+        {
+            // Find the position of the last '@' symbol
+            int lastIndex = address.LastIndexOf('@');
+
+            // Check if the '@' symbol is present and not the first or last character
+            if (lastIndex != -1 && lastIndex > 0 && lastIndex < address.Length - 1)
+            {
+                // Split the string into two parts based on the last '@' symbol
+                string domain = address[(lastIndex + 1)..];
+                return domain;
+            }
+
+            return null;
+        }
+        catch
+        {
+            _logger.LogError("Unable to get domain from email ({address})", address);
+            return null;
+        }
     }
 
     /// <summary>

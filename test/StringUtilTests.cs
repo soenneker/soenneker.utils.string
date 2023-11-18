@@ -1,14 +1,20 @@
 ﻿using FluentAssertions;
+using Soenneker.Tests.FixturedUnit;
 using Soenneker.Tests.Unit;
+using Soenneker.Utils.String.Abstract;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Soenneker.Utils.String.Tests;
 
-public class StringUtilTests : UnitTest
+[Collection("Collection")]
+public class StringUtilTests : FixturedUnitTest
 {
-    public StringUtilTests(ITestOutputHelper output) : base(output)
+    private readonly IStringUtil _util;
+
+    public StringUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
     {
+        _util = Resolve<IStringUtil>(true);
     }
 
     [Fact]
@@ -121,5 +127,13 @@ public class StringUtilTests : UnitTest
         string result = StringUtil.BuildStringFromTemplate("{test} blah {bar}");
 
         result.Should().Be("{test} blah {bar}");
+    }
+
+    [Fact]
+    public void GetDomainFromEmail_should_get_domain()
+    {
+        const string test = "blah@blah.com";
+        string? result = _util.GetDomainFromEmail(test);
+        result.Should().Be("blah.com");
     }
 }
