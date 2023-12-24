@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
 using Soenneker.Extensions.Enumerable;
@@ -44,6 +45,12 @@ public class StringUtil : IStringUtil
         return string.Join(':', filtered);
     }
 
+    /// <summary>
+    /// Retrieves the value of a query parameter from the specified URL.
+    /// </summary>
+    /// <param name="url">The URL to extract the query parameter from.</param>
+    /// <param name="name">The name of the query parameter.</param>
+    /// <returns>The value of the query parameter, or null if the URL is null or empty, or if the query parameter does not exist.</returns>
     [Pure]
     public static string? GetQueryParameter(string? url, string? name)
     {
@@ -73,6 +80,11 @@ public class StringUtil : IStringUtil
         return result;
     }
 
+    /// <summary>
+    /// Retrieves the query parameters from the specified URL.
+    /// </summary>
+    /// <param name="url">The URL to extract the query parameters from.</param>
+    /// <returns>A dictionary containing the query parameters as key-value pairs, or null if the URL is null or empty, or if the URL does not contain any query parameters.</returns>
     [Pure]
     public static Dictionary<string, string>? GetQueryParameters(string? url)
     {
@@ -102,11 +114,15 @@ public class StringUtil : IStringUtil
         return result;
     }
 
+    /// <summary>
+    /// Retrieves the domain from an email address.
+    /// </summary>
+    /// <param name="address">The email address.</param>
+    /// <returns>The domain of the email address, or null if the email address is invalid.</returns>
     public string? GetDomainFromEmail(string address)
     {
         try
         {
-            // Find the position of the last '@' symbol
             int lastIndex = address.LastIndexOf('@');
 
             // Check if the '@' symbol is present and not the first or last character
@@ -127,12 +143,35 @@ public class StringUtil : IStringUtil
     }
 
     /// <summary>
+    /// Extracts URLs from the given value.
+    /// </summary>
+    /// <param name="value">The value to extract URLs from.</param>
+    /// <returns>A list of URLs extracted from the value, an empty list if there are no matches or if the value is null or empty</returns>
+    [Pure]
+    public static List<string>? ExtractUrls(string? value)
+    {
+        var urls = new List<string>();
+
+        if (value.IsNullOrWhiteSpace())
+            return urls;
+
+        MatchCollection matches = RegexCollection.RegexCollection.Url().Matches(value);
+
+        foreach (Match match in matches)
+        {
+            urls.Add(match.Value);
+        }
+
+        return urls;
+    }
+
+    /// <summary>
     /// Similar to logging strings:
     /// <code>logger.log("{variable} is a prime number", 2);</code> "2 is a prime number" 
     /// </summary>
+    /// <param name="str">The string to build from the template.</param>
+    /// <param name="values">The values to inject into the template.</param>
     /// <returns>If the number of parameters does not match the number of values coming in, it will return the braced variable in the string</returns>
-    /// <param name="str"></param>
-    /// <param name="values"></param>
     [Pure]
     [return: NotNullIfNotNull("str")]
     public static string? BuildStringFromTemplate(string? str, params object?[]? values)

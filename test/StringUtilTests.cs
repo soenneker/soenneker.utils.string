@@ -1,6 +1,6 @@
-﻿using FluentAssertions;
+﻿using System.Linq;
+using FluentAssertions;
 using Soenneker.Tests.FixturedUnit;
-using Soenneker.Tests.Unit;
 using Soenneker.Utils.String.Abstract;
 using Xunit;
 using Xunit.Abstractions;
@@ -135,5 +135,25 @@ public class StringUtilTests : FixturedUnitTest
         const string test = "blah@blah.com";
         string? result = _util.GetDomainFromEmail(test);
         result.Should().Be("blah.com");
+    }
+
+    [Theory]
+    [InlineData("blahhttps://google.com", "https://google.com")]
+    [InlineData("blah https://google.com", "https://google.com")]
+    [InlineData("[url=https://google.com]", "https://google.com")]
+    [InlineData("[url=http://google.com]", "http://google.com")]
+    [InlineData("foowww.google.com]", "www.google.com")]
+    [InlineData("google.com", null)]
+    public void ExtractUrls_should_extract(string input, string? expected)
+    {
+        string? result = StringUtil.ExtractUrls(input)!.FirstOrDefault();
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void ExtractUrls_should_extract_multiple()
+    {
+        var result = StringUtil.ExtractUrls("https://google.com https://www.foobar.com blue")!;
+        result.Count.Should().Be(2);
     }
 }
