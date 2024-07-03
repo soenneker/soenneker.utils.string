@@ -4,12 +4,15 @@ using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
 using Soenneker.Extensions.Enumerable;
 using Soenneker.Extensions.NameValueCollection;
 using Soenneker.Extensions.String;
+using Soenneker.Reflection.Cache;
+using Soenneker.Reflection.Cache.Types;
 using Soenneker.Utils.String.Abstract;
 
 namespace Soenneker.Utils.String;
@@ -18,10 +21,13 @@ namespace Soenneker.Utils.String;
 public class StringUtil : IStringUtil
 {
     private readonly ILogger<StringUtil> _logger;
+    private readonly Lazy<ReflectionCache> _reflectionCache;
 
     public StringUtil(ILogger<StringUtil> logger)
     {
         _logger = logger;
+        _reflectionCache = new Lazy<ReflectionCache>(() =>
+            new ReflectionCache(new Reflection.Cache.Options.ReflectionCacheOptions {PropertyFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance}));
     }
 
     /// <summary>
@@ -114,11 +120,38 @@ public class StringUtil : IStringUtil
         return result;
     }
 
-    /// <summary>
-    /// Retrieves the domain from an email address.
-    /// </summary>
-    /// <param name="address">The email address.</param>
-    /// <returns>The domain of the email address, or null if the email address is invalid.</returns>
+    public T ParseQueryString<T>(string queryString) where T : new()
+    {
+        queryString.ThrowIfNullOrEmpty();
+
+        NameValueCollection queryParameters = HttpUtility.ParseQueryString(queryString);
+
+        Type type = typeof(T);
+
+        var model = new T();
+
+        CachedType cachedTyped = _reflectionCache.Value.GetCachedType(type);
+
+        foreach (string key in queryParameters.Keys)
+        {
+            PropertyInfo? property = cachedTyped.GetProperty(key);
+
+            if (property == null || !property.CanWrite)
+                continue;
+
+            Type propertyType = property.PropertyType;
+            string? value = queryParameters[key];
+
+            if (value == null)
+                continue;
+
+            object convertedValue = Convert.ChangeType(value, propertyType);
+            property.SetValue(model, convertedValue);
+        }
+
+        return model;
+    }
+
     public string? GetDomainFromEmail(string address)
     {
         try

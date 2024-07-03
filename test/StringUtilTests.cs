@@ -1,7 +1,9 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using FluentAssertions;
 using Soenneker.Tests.FixturedUnit;
 using Soenneker.Utils.String.Abstract;
+using Soenneker.Utils.String.Tests.Dtos;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -155,5 +157,48 @@ public class StringUtilTests : FixturedUnitTest
     {
         var result = StringUtil.ExtractUrls("https://google.com https://www.foobar.com blue")!;
         result.Count.Should().Be(2);
+    }
+
+    [Fact]
+    public void ParseQueryString_ShouldParseStringToModel()
+    {
+        // Arrange
+        var queryString = "Param1=value1&Param2=123&Param3=true";
+
+        // Act
+        QueryDto result = _util.ParseQueryString<QueryDto>(queryString);
+
+        // Assert
+        result.Param1.Should().Be("value1");
+        result.Param2.Should().Be(123);
+        result.Param3.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ParseQueryString_ShouldHandleMissingParameters()
+    {
+        // Arrange
+        var queryString = "Param1=value1";
+
+        // Act
+        QueryDto result = _util.ParseQueryString<QueryDto>(queryString);
+
+        // Assert
+        result.Param1.Should().Be("value1");
+        result.Param2.Should().Be(0); // default int value
+        result.Param3.Should().BeFalse(); // default bool value
+    }
+
+    [Fact]
+    public void ParseQueryString_ShouldHandleInvalidConversions()
+    {
+        // Arrange
+        string queryString = "Param2=invalid";
+
+        // Act
+        Action act = () => _ = _util.ParseQueryString<QueryDto>(queryString);
+
+        // Assert
+        act.Should().Throw<FormatException>();
     }
 }
