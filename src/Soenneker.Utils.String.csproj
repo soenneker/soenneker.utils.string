@@ -13,7 +13,7 @@
         <Version Condition="'$(BUILD_VERSION)' != ''">$(BUILD_VERSION)</Version>
         <AssemblyName>Soenneker.Utils.String</AssemblyName>
         <PackageId>Soenneker.Utils.String</PackageId>
-        <PackageTags>utils string c# .net dotnet</PackageTags>
+        <PackageTags>utils string c# .net dotnet stringutil istringutil</PackageTags>
         <Copyright>Copyright © 2023-2024 Jake Soenneker</Copyright>
         <Authors>Jake Soenneker</Authors>
         <Company>https://soenneker.com</Company>

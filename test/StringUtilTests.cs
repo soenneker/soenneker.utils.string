@@ -190,6 +190,21 @@ public class StringUtilTests : FixturedUnitTest
     }
 
     [Fact]
+    public void ParseQueryString_with_question_ShouldHandleMissingParameters()
+    {
+        // Arrange
+        var queryString = "?Param1=value1";
+
+        // Act
+        QueryDto result = _util.ParseQueryString<QueryDto>(queryString);
+
+        // Assert
+        result.Param1.Should().Be("value1");
+        result.Param2.Should().Be(0); // default int value
+        result.Param3.Should().BeFalse(); // default bool value
+    }
+
+    [Fact]
     public void ParseQueryString_ShouldHandleInvalidConversions()
     {
         // Arrange
