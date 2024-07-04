@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ using Soenneker.Extensions.NameValueCollection;
 using Soenneker.Extensions.String;
 using Soenneker.Reflection.Cache;
 using Soenneker.Reflection.Cache.Types;
+using Soenneker.Utils.Json;
 using Soenneker.Utils.String.Abstract;
 
 namespace Soenneker.Utils.String;
@@ -118,6 +120,34 @@ public class StringUtil : IStringUtil
 
         Dictionary<string, string> result = queryParams.ToDictionary();
         return result;
+    }
+
+    public static T? ParseQueryStringUsingJson<T>(string queryString, ILogger? logger = null) where T : new()
+    {
+        try
+        {
+            NameValueCollection queryParameters = HttpUtility.ParseQueryString(queryString);
+            Dictionary<string, string> dict = queryParameters.ToDictionary();
+
+            // Convert the dictionary to a JSON string
+            string? json = JsonUtil.Serialize(dict);
+
+            if (json == null)
+            {
+                logger?.LogError("Error serializing query parameters");
+                return default;
+            }
+
+            // Deserialize the JSON string to the specified type
+            var obj = JsonUtil.Deserialize<T>(json);
+
+            return obj;
+        }
+        catch (Exception e)
+        {
+            logger?.LogError(e, "Error parsing query using JSON");
+            return default;
+        }
     }
 
     public T ParseQueryString<T>(string queryString) where T : new()
