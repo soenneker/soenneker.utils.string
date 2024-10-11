@@ -39,7 +39,7 @@
 
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
         <PackageReference Include="Soenneker.Extensions.Enumerable" Version="2.1.180" />
-        <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="2.1.336" />
+        <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="2.1.338" />
         <PackageReference Include="Soenneker.Extensions.String" Version="2.1.252" />
         <PackageReference Include="Soenneker.Reflection.Cache" Version="2.1.223" />
         <PackageReference Include="Soenneker.Utils.Json" Version="2.1.1367" />
