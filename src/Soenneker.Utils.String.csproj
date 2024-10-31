@@ -41,7 +41,7 @@
         <PackageReference Include="Soenneker.Extensions.Enumerable" Version="2.1.192" />
         <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="2.1.348" />
         <PackageReference Include="Soenneker.Extensions.String" Version="2.1.253" />
-        <PackageReference Include="Soenneker.Reflection.Cache" Version="2.1.229" />
+        <PackageReference Include="Soenneker.Reflection.Cache" Version="2.1.230" />
         <PackageReference Include="Soenneker.Utils.Json" Version="2.1.1421" />
     </ItemGroup>
 </Project>
