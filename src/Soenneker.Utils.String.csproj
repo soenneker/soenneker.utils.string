@@ -38,7 +38,7 @@
         <None Include="..\icon.png" Pack="true" PackagePath="\" />
 
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
-        <PackageReference Include="Soenneker.Extensions.Enumerable" Version="3.0.207" />
+        <PackageReference Include="Soenneker.Extensions.Enumerable" Version="3.0.208" />
         <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="2.1.361" />
         <PackageReference Include="Soenneker.Extensions.String" Version="3.0.259" />
         <PackageReference Include="Soenneker.Reflection.Cache" Version="2.1.237" />
