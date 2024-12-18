@@ -19,7 +19,7 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-        <PackageReference Include="Soenneker.Tests.FixturedUnit" Version="3.0.1348" />
+        <PackageReference Include="Soenneker.Tests.FixturedUnit" Version="3.0.1358" />
         <PackageReference Include="Soenneker.Utils.Test" Version="3.0.253" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -29,7 +29,7 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-    </ItemGroup>
+    <PackageReference Include="xUnit.v3" Version="1.0.0" /></ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\Soenneker.Utils.String.csproj" />

@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -11,7 +11,7 @@ namespace Soenneker.Utils.String.Tests;
 
 public class Fixture : UnitFixture
 {
-    public override Task InitializeAsync()
+    public override System.Threading.Tasks.ValueTask InitializeAsync()
     {
         SetupIoC(Services);
 

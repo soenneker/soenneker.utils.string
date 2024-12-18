@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Linq;
 using FluentAssertions;
 using Soenneker.Tests.FixturedUnit;
 using Soenneker.Utils.String.Abstract;
 using Soenneker.Utils.String.Tests.Dtos;
 using Xunit;
-using Xunit.Abstractions;
+
 
 namespace Soenneker.Utils.String.Tests;
 
