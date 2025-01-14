@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Reflection;
-using System.Text.Json;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
@@ -22,12 +21,10 @@ namespace Soenneker.Utils.String;
 ///<inheritdoc cref="IStringUtil"/>
 public class StringUtil : IStringUtil
 {
-    private readonly ILogger<StringUtil> _logger;
     private readonly Lazy<ReflectionCache> _reflectionCache;
 
-    public StringUtil(ILogger<StringUtil> logger)
+    public StringUtil()
     {
-        _logger = logger;
         _reflectionCache = new Lazy<ReflectionCache>(() =>
             new ReflectionCache(new Reflection.Cache.Options.ReflectionCacheOptions {PropertyFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance}));
     }
@@ -37,20 +34,37 @@ public class StringUtil : IStringUtil
     /// </summary>
     /// <returns>An empty string if all of the keys are null or empty.</returns>
     [Pure]
-    public static string ToCombinedId(params string?[] keys)
+    public static string ToCombinedId(string?[] keys)
     {
         if (keys.IsNullOrEmpty())
             return "";
 
-        List<string?> filtered = keys.Where(c => !c.IsNullOrEmpty()).ToList();
+        // Estimate the required capacity for the StringBuilder to minimize allocations.
+        // Assuming each key is around 10 characters and there are separators (':').
+        const int averageKeyLength = 10;
 
-        if (filtered.Empty())
-            return "";
+        // StringBuilder to construct the result without intermediate allocations.
+        var builder = new StringBuilder(keys.Length * (averageKeyLength + 1));
 
-        if (filtered.Count == 1)
-            return filtered[0]!;
+        var hasValue = false;
 
-        return string.Join(':', filtered);
+        for (int i = 0; i < keys.Length; i++)
+        {
+            string? key = keys[i];
+            if (!key.IsNullOrEmpty())
+            {
+                if (hasValue)
+                {
+                    builder.Append(':');
+                }
+
+                builder.Append(key);
+                hasValue = true;
+            }
+        }
+
+        // If no valid keys are found, return an empty string.
+        return hasValue ? builder.ToString() : "";
     }
 
     /// <summary>
@@ -62,30 +76,44 @@ public class StringUtil : IStringUtil
     [Pure]
     public static string? GetQueryParameter(string? url, string? name)
     {
-        if (url.IsNullOrEmpty() || name.IsNullOrEmpty())
+        if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(name))
             return null;
 
-        NameValueCollection queryParams;
+        int queryStartIndex = url.IndexOf('?');
+        if (queryStartIndex == -1 || queryStartIndex == url.Length - 1)
+            return null;
 
-        try
+        ReadOnlySpan<char> querySpan = url.AsSpan(queryStartIndex + 1);
+        ReadOnlySpan<char> nameSpan = name.AsSpan();
+
+        while (!querySpan.IsEmpty)
         {
-            var uri = new Uri(url);
+            int equalsIndex = querySpan.IndexOf('=');
+            if (equalsIndex == -1)
+                break;
 
-            if (uri.Query == "")
-                return null;
+            ReadOnlySpan<char> key = querySpan.Slice(0, equalsIndex);
+            int ampersandIndex = querySpan.Slice(equalsIndex + 1).IndexOf('&');
 
-            queryParams = HttpUtility.ParseQueryString(uri.Query);
+            ReadOnlySpan<char> value;
+            if (ampersandIndex == -1)
+            {
+                value = querySpan.Slice(equalsIndex + 1);
+                querySpan = ReadOnlySpan<char>.Empty;
+            }
+            else
+            {
+                value = querySpan.Slice(equalsIndex + 1, ampersandIndex);
+                querySpan = querySpan.Slice(equalsIndex + 1 + ampersandIndex + 1);
+            }
+
+            if (key.SequenceEqual(nameSpan))
+            {
+                return Uri.UnescapeDataString(value.ToString());
+            }
         }
-        catch
-        {
-            return null;
-        }
 
-        if (queryParams.Count == 0)
-            return null;
-
-        string? result = queryParams.Get(name);
-        return result;
+        return null;
     }
 
     /// <summary>
@@ -99,27 +127,54 @@ public class StringUtil : IStringUtil
         if (url.IsNullOrEmpty())
             return null;
 
-        NameValueCollection queryParams;
-
+        // Attempt to parse the URL only once
+        Uri? uri;
         try
         {
-            var uri = new Uri(url);
-
-            if (uri.Query == "")
-                return null;
-
-            queryParams = HttpUtility.ParseQueryString(uri.Query);
+            uri = new Uri(url);
         }
-        catch
+        catch (UriFormatException)
         {
             return null;
         }
 
-        if (queryParams.Count == 0)
+        // Early exit if there's no query string
+        string query = uri.Query;
+        if (query.IsNullOrEmpty() || query.Length <= 1) // Query is either empty or only "?"
             return null;
 
-        Dictionary<string, string> result = queryParams.ToDictionary();
-        return result;
+        // Remove the leading '?' from the query string
+        ReadOnlySpan<char> querySpan = query.AsSpan(1);
+
+        // Dictionary allocation with an estimated initial capacity for minimal resizing
+        var result = new Dictionary<string, string>(4, StringComparer.Ordinal);
+
+        // Parse the query string manually for optimal performance
+        var start = 0;
+
+        while (start < querySpan.Length)
+        {
+            int equalsIndex = querySpan.Slice(start).IndexOf('=');
+            if (equalsIndex == -1)
+                break;
+
+            int ampIndex = querySpan.Slice(start + equalsIndex + 1).IndexOf('&');
+
+            if (ampIndex == -1)
+                ampIndex = querySpan.Length - start - equalsIndex - 1;
+
+            ReadOnlySpan<char> key = querySpan.Slice(start, equalsIndex);
+            ReadOnlySpan<char> value = querySpan.Slice(start + equalsIndex + 1, ampIndex);
+
+            string decodedKey = Uri.UnescapeDataString(key.ToString());
+            string decodedValue = Uri.UnescapeDataString(value.ToString());
+
+            result.TryAdd(decodedKey, decodedValue);
+
+            start += equalsIndex + ampIndex + 2; // Advance past "key=value&"
+        }
+
+        return result.Count > 0 ? result : null;
     }
 
     public static T? ParseQueryStringUsingJson<T>(string queryString, ILogger? logger = null) where T : new()
@@ -184,25 +239,20 @@ public class StringUtil : IStringUtil
 
     public string? GetDomainFromEmail(string address)
     {
-        try
-        {
-            int lastIndex = address.LastIndexOf('@');
-
-            // Check if the '@' symbol is present and not the first or last character
-            if (lastIndex != -1 && lastIndex > 0 && lastIndex < address.Length - 1)
-            {
-                // Split the string into two parts based on the last '@' symbol
-                string domain = address[(lastIndex + 1)..];
-                return domain;
-            }
-
+        if (address.IsNullOrEmpty())
             return null;
-        }
-        catch
+
+        int lastIndex = address.LastIndexOf('@');
+
+        // Ensure '@' exists and is in a valid position
+        if (lastIndex > 0 && lastIndex < address.Length - 1)
         {
-            _logger.LogError("Unable to get domain from email ({address})", address);
-            return null;
+            // Extract domain without allocation using string slicing
+            return address.AsSpan(lastIndex + 1).ToString();
         }
+
+        // Return null for invalid email formats
+        return null;
     }
 
     /// <summary>
@@ -213,15 +263,18 @@ public class StringUtil : IStringUtil
     [Pure]
     public static List<string>? ExtractUrls(string? value)
     {
-        var urls = new List<string>();
-
         if (value.IsNullOrWhiteSpace())
-            return urls;
+            return null;
 
-        MatchCollection matches = RegexCollection.RegexCollection.Url().Matches(value);
+        // Cache the regex instance for reuse, as RegexOptions.Compiled is expensive to recreate.
+        Regex regex = RegexCollection.RegexCollection.Url();
 
-        foreach (Match match in matches)
+        List<string>? urls = null;
+
+        foreach (Match match in regex.Matches(value))
         {
+            // Lazy initialization of the list to reduce allocations for inputs with no matches.
+            urls ??= new List<string>(4);
             urls.Add(match.Value);
         }
 
