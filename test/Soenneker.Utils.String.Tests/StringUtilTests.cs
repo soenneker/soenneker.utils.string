@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Soenneker.Tests.FixturedUnit;
@@ -148,14 +149,14 @@ public class StringUtilTests : FixturedUnitTest
     [InlineData("google.com", null)]
     public void ExtractUrls_should_extract(string input, string? expected)
     {
-        string? result = StringUtil.ExtractUrls(input)!.FirstOrDefault();
+        string? result = StringUtil.ExtractUrls(input)?.FirstOrDefault();
         result.Should().Be(expected);
     }
 
     [Fact]
     public void ExtractUrls_should_extract_multiple()
     {
-        var result = StringUtil.ExtractUrls("https://google.com https://www.foobar.com blue")!;
+        List<string>? result = StringUtil.ExtractUrls("https://google.com https://www.foobar.com blue")!;
         result.Count.Should().Be(2);
     }
 
