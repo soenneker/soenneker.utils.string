@@ -34,7 +34,7 @@ public class StringUtil : IStringUtil
     /// </summary>
     /// <returns>An empty string if all of the keys are null or empty.</returns>
     [Pure]
-    public static string ToCombinedId(string?[] keys)
+    public static string ToCombinedId(params string?[] keys)
     {
         if (keys.IsNullOrEmpty())
             return "";
