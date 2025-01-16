@@ -76,7 +76,7 @@ public class StringUtil : IStringUtil
     [Pure]
     public static string? GetQueryParameter(string? url, string? name)
     {
-        if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(name))
+        if (url.IsNullOrEmpty() || name.IsNullOrEmpty())
             return null;
 
         int queryStartIndex = url.IndexOf('?');
