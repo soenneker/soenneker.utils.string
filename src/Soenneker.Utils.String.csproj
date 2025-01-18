@@ -38,7 +38,7 @@
         <None Include="..\icon.png" Pack="true" PackagePath="\" />
         <PackageReference Include="Soenneker.Extensions.Enumerable" Version="3.0.354" />
         <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="3.0.495" />
-        <PackageReference Include="Soenneker.Reflection.Cache" Version="3.0.394" />
+        <PackageReference Include="Soenneker.Reflection.Cache" Version="3.0.395" />
         <PackageReference Include="Soenneker.Utils.Json" Version="3.0.1878" />
     </ItemGroup>
 </Project>
