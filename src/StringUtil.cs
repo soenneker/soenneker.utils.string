@@ -51,6 +51,7 @@ public class StringUtil : IStringUtil
         for (int i = 0; i < keys.Length; i++)
         {
             string? key = keys[i];
+
             if (!key.IsNullOrEmpty())
             {
                 if (hasValue)
@@ -89,14 +90,14 @@ public class StringUtil : IStringUtil
         while (!querySpan.IsEmpty)
         {
             int equalsIndex = querySpan.IndexOf('=');
-            if (equalsIndex == -1)
+            if (equalsIndex is -1)
                 break;
 
             ReadOnlySpan<char> key = querySpan.Slice(0, equalsIndex);
             int ampersandIndex = querySpan.Slice(equalsIndex + 1).IndexOf('&');
 
             ReadOnlySpan<char> value;
-            if (ampersandIndex == -1)
+            if (ampersandIndex is -1)
             {
                 value = querySpan.Slice(equalsIndex + 1);
                 querySpan = ReadOnlySpan<char>.Empty;
@@ -155,12 +156,12 @@ public class StringUtil : IStringUtil
         while (start < querySpan.Length)
         {
             int equalsIndex = querySpan.Slice(start).IndexOf('=');
-            if (equalsIndex == -1)
+            if (equalsIndex is -1)
                 break;
 
             int ampIndex = querySpan.Slice(start + equalsIndex + 1).IndexOf('&');
 
-            if (ampIndex == -1)
+            if (ampIndex is -1)
                 ampIndex = querySpan.Length - start - equalsIndex - 1;
 
             ReadOnlySpan<char> key = querySpan.Slice(start, equalsIndex);
@@ -187,7 +188,7 @@ public class StringUtil : IStringUtil
             // Convert the dictionary to a JSON string
             string? json = JsonUtil.Serialize(dict);
 
-            if (json == null)
+            if (json is null)
             {
                 logger?.LogError("Error serializing query parameters");
                 return default;
