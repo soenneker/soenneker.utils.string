@@ -12,16 +12,20 @@ public static class StringUtilRegistrar
     /// <summary>
     /// Adds <see cref="IStringUtil"/> as a scoped service. <para/>
     /// </summary>
-    public static void AddStringUtilAsScoped(this IServiceCollection services)
+    public static IServiceCollection AddStringUtilAsScoped(this IServiceCollection services)
     {
         services.TryAddScoped<IStringUtil, StringUtil>();
+
+        return services;
     }
 
     /// <summary>
     /// Adds <see cref="IStringUtil"/> as a singleton service.<para/>
     /// </summary>
-    public static void AddStringUtilAsSingleton(this IServiceCollection services)
+    public static IServiceCollection AddStringUtilAsSingleton(this IServiceCollection services)
     {
         services.TryAddSingleton<IStringUtil, StringUtil>();
+
+        return services;
     }
 }
