@@ -18,7 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
         <PackageReference Include="Soenneker.Tests.FixturedUnit" Version="3.0.1843" />
         <PackageReference Include="Soenneker.Utils.Test" Version="3.0.283" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.0">
