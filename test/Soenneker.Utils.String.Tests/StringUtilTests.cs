@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FluentAssertions;
+using AwesomeAssertions;
 using Soenneker.Tests.FixturedUnit;
 using Soenneker.Utils.String.Abstract;
 using Soenneker.Utils.String.Tests.Dtos;
