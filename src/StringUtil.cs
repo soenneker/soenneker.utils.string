@@ -19,7 +19,7 @@ using Soenneker.Utils.String.Abstract;
 namespace Soenneker.Utils.String;
 
 ///<inheritdoc cref="IStringUtil"/>
-public class StringUtil : IStringUtil
+public sealed class StringUtil : IStringUtil
 {
     private readonly Lazy<ReflectionCache> _reflectionCache;
 
