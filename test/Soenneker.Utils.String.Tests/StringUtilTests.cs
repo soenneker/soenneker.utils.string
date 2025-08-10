@@ -167,7 +167,7 @@ public class StringUtilTests : FixturedUnitTest
         var queryString = "Param1=value1&Param2=123&Param3=true";
 
         // Act
-        QueryDto result = _util.ParseQueryString<QueryDto>(queryString);
+        var result = _util.ParseQueryString<QueryDto>(queryString);
 
         // Assert
         result.Param1.Should().Be("value1");
@@ -179,10 +179,10 @@ public class StringUtilTests : FixturedUnitTest
     public void ParseQueryString_ShouldHandleMissingParameters()
     {
         // Arrange
-        var queryString = "Param1=value1";
+        const string queryString = "Param1=value1";
 
         // Act
-        QueryDto result = _util.ParseQueryString<QueryDto>(queryString);
+        var result = _util.ParseQueryString<QueryDto>(queryString);
 
         // Assert
         result.Param1.Should().Be("value1");
@@ -197,7 +197,7 @@ public class StringUtilTests : FixturedUnitTest
         var queryString = "?Param1=value1";
 
         // Act
-        QueryDto result = _util.ParseQueryString<QueryDto>(queryString);
+        var result = _util.ParseQueryString<QueryDto>(queryString);
 
         // Assert
         result.Param1.Should().Be("value1");
@@ -209,7 +209,7 @@ public class StringUtilTests : FixturedUnitTest
     public void ParseQueryString_ShouldHandleInvalidConversions()
     {
         // Arrange
-        string queryString = "Param2=invalid";
+        var queryString = "Param2=invalid";
 
         // Act
         Action act = () => _ = _util.ParseQueryString<QueryDto>(queryString);

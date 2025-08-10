@@ -5,9 +5,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
+using Soenneker.Extensions.Arrays.Bytes;
 using Soenneker.Extensions.Enumerable;
 using Soenneker.Extensions.NameValueCollection;
 using Soenneker.Extensions.String;
@@ -48,7 +50,7 @@ public sealed class StringUtil : IStringUtil
 
         var hasValue = false;
 
-        for (int i = 0; i < keys.Length; i++)
+        for (var i = 0; i < keys.Length; i++)
         {
             string? key = keys[i];
 
@@ -327,5 +329,36 @@ public sealed class StringUtil : IStringUtil
         {
             return str;
         }
+    }
+
+    /// <summary>
+    /// Decodes a Base64-encoded JSON string into a strongly typed object.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The type of object to deserialize into.
+    /// </typeparam>
+    /// <param name="base64">
+    /// The Base64-encoded string containing JSON data.
+    /// </param>
+    /// <returns>
+    /// The deserialized object of type <typeparamref name="T"/>.
+    /// Returns <c>null</c> if the JSON represents a null value.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown if <paramref name="base64"/> is null, empty, or consists only of white-space characters.
+    /// </exception>
+    /// <exception cref="FormatException">
+    /// Thrown if the Base64 string is not in a valid format.
+    /// </exception>
+    /// <exception cref="JsonException">
+    /// Thrown if the JSON is invalid or cannot be deserialized to the target type.
+    /// </exception>
+    public static T? ConvertBase64JsonToObject<T>(string base64)
+    {
+        if (base64.IsNullOrWhiteSpace())
+            throw new ArgumentException("Base64 string is null or empty.", nameof(base64));
+
+        byte[] bytes = base64.ToBytesFromBase64();
+        return JsonUtil.Deserialize<T>(bytes);
     }
 }
