@@ -15,6 +15,7 @@ using Soenneker.Extensions.String;
 using Soenneker.Reflection.Cache;
 using Soenneker.Reflection.Cache.Types;
 using Soenneker.Utils.Json;
+using Soenneker.Utils.PooledStringBuilders;
 using Soenneker.Utils.String.Abstract;
 
 namespace Soenneker.Utils.String;
@@ -40,33 +41,40 @@ public sealed class StringUtil : IStringUtil
         if (keys.IsNullOrEmpty())
             return "";
 
-        // Estimate the required capacity for the StringBuilder to minimize allocations.
-        // Assuming each key is around 10 characters and there are separators (':').
-        const int averageKeyLength = 10;
-
-        // StringBuilder to construct the result without intermediate allocations.
-        var builder = new StringBuilder(keys.Length * (averageKeyLength + 1));
-
-        var hasValue = false;
+        // First pass: exact sizing
+        var validCount = 0;
+        var totalChars = 0;
 
         for (var i = 0; i < keys.Length; i++)
         {
             string? key = keys[i];
 
-            if (!key.IsNullOrEmpty())
+            if (key.HasContent())
             {
-                if (hasValue)
-                {
-                    builder.Append(':');
-                }
-
-                builder.Append(key);
-                hasValue = true;
+                validCount++;
+                totalChars += key.Length;
             }
         }
 
-        // If no valid keys are found, return an empty string.
-        return hasValue ? builder.ToString() : "";
+        if (validCount == 0)
+            return "";
+
+        int capacity = totalChars + (validCount - 1); // ':' separators
+
+        using var sb = new PooledStringBuilder(capacity);
+
+        for (var i = 0; i < keys.Length; i++)
+        {
+            string? key = keys[i];
+
+            if (key.HasContent())
+            {
+                sb.AppendSeparatorIfNotEmpty(':');
+                sb.Append(key);
+            }
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>
