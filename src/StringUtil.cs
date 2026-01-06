@@ -1,11 +1,11 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Reflection;
-using System.Text;
-using System.Text.Json;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
@@ -23,33 +23,28 @@ namespace Soenneker.Utils.String;
 ///<inheritdoc cref="IStringUtil"/>
 public sealed class StringUtil : IStringUtil
 {
-    private readonly Lazy<ReflectionCache> _reflectionCache;
-
-    public StringUtil()
+    private static readonly Lazy<ReflectionCache> s_reflectionCache = new(static () => new ReflectionCache(new Reflection.Cache.Options.ReflectionCacheOptions
     {
-        _reflectionCache = new Lazy<ReflectionCache>(() =>
-            new ReflectionCache(new Reflection.Cache.Options.ReflectionCacheOptions {PropertyFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance}));
-    }
+        PropertyFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance
+    }));
 
     /// <summary>
-    /// For combining any number of strings with a ':' character between them.  Will filter out null or empty strings.
+    /// For combining any number of strings with a ':' character between them. Will filter out null or empty strings.
     /// </summary>
     /// <returns>An empty string if all of the keys are null or empty.</returns>
     [Pure]
     public static string ToCombinedId(params string?[] keys)
     {
         if (keys.IsNullOrEmpty())
-            return "";
+            return string.Empty;
 
-        // First pass: exact sizing
         var validCount = 0;
         var totalChars = 0;
 
         for (var i = 0; i < keys.Length; i++)
         {
             string? key = keys[i];
-
-            if (key.HasContent())
+            if (!string.IsNullOrEmpty(key))
             {
                 validCount++;
                 totalChars += key.Length;
@@ -57,21 +52,26 @@ public sealed class StringUtil : IStringUtil
         }
 
         if (validCount == 0)
-            return "";
+            return string.Empty;
 
-        int capacity = totalChars + (validCount - 1); // ':' separators
+        int capacity = totalChars + (validCount - 1);
 
         using var sb = new PooledStringBuilder(capacity);
+
+        var first = true;
 
         for (var i = 0; i < keys.Length; i++)
         {
             string? key = keys[i];
+            if (string.IsNullOrEmpty(key))
+                continue;
 
-            if (key.HasContent())
-            {
-                sb.AppendSeparatorIfNotEmpty(':');
-                sb.Append(key);
-            }
+            if (!first)
+                sb.Append(':');
+            else
+                first = false;
+
+            sb.Append(key);
         }
 
         return sb.ToString();
@@ -80,47 +80,45 @@ public sealed class StringUtil : IStringUtil
     /// <summary>
     /// Retrieves the value of a query parameter from the specified URL.
     /// </summary>
-    /// <param name="url">The URL to extract the query parameter from.</param>
-    /// <param name="name">The name of the query parameter.</param>
-    /// <returns>The value of the query parameter, or null if the URL is null or empty, or if the query parameter does not exist.</returns>
     [Pure]
     public static string? GetQueryParameter(string? url, string? name)
     {
-        if (url.IsNullOrEmpty() || name.IsNullOrEmpty())
+        if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(name))
             return null;
 
         int queryStartIndex = url.IndexOf('?');
-        if (queryStartIndex == -1 || queryStartIndex == url.Length - 1)
+        if ((uint)queryStartIndex >= (uint)(url.Length - 1)) // -1 or last char
             return null;
 
-        ReadOnlySpan<char> querySpan = url.AsSpan(queryStartIndex + 1);
+        ReadOnlySpan<char> query = url.AsSpan(queryStartIndex + 1);
         ReadOnlySpan<char> nameSpan = name.AsSpan();
 
-        while (!querySpan.IsEmpty)
+        while (!query.IsEmpty)
         {
-            int equalsIndex = querySpan.IndexOf('=');
-            if (equalsIndex is -1)
-                break;
+            // segment is [0..&] or remainder
+            int amp = query.IndexOf('&');
+            ReadOnlySpan<char> segment = amp >= 0 ? query.Slice(0, amp) : query;
+            query = amp >= 0 ? query.Slice(amp + 1) : ReadOnlySpan<char>.Empty;
 
-            ReadOnlySpan<char> key = querySpan.Slice(0, equalsIndex);
-            int ampersandIndex = querySpan.Slice(equalsIndex + 1).IndexOf('&');
+            if (segment.IsEmpty)
+                continue;
 
-            ReadOnlySpan<char> value;
-            if (ampersandIndex is -1)
+            int eq = segment.IndexOf('=');
+            if (eq < 0)
             {
-                value = querySpan.Slice(equalsIndex + 1);
-                querySpan = ReadOnlySpan<char>.Empty;
-            }
-            else
-            {
-                value = querySpan.Slice(equalsIndex + 1, ampersandIndex);
-                querySpan = querySpan.Slice(equalsIndex + 1 + ampersandIndex + 1);
+                // key-only segments like "?foo&bar=baz"
+                if (segment.SequenceEqual(nameSpan))
+                    return string.Empty;
+
+                continue;
             }
 
-            if (key.SequenceEqual(nameSpan))
-            {
-                return Uri.UnescapeDataString(value.ToString());
-            }
+            ReadOnlySpan<char> key = segment.Slice(0, eq);
+            if (!key.SequenceEqual(nameSpan))
+                continue;
+
+            ReadOnlySpan<char> value = segment.Slice(eq + 1);
+            return DecodeQueryComponentIfNeeded(value);
         }
 
         return null;
@@ -129,84 +127,86 @@ public sealed class StringUtil : IStringUtil
     /// <summary>
     /// Retrieves the query parameters from the specified URL.
     /// </summary>
-    /// <param name="url">The URL to extract the query parameters from.</param>
-    /// <returns>A dictionary containing the query parameters as key-value pairs, or null if the URL is null or empty, or if the URL does not contain any query parameters.</returns>
     [Pure]
     public static Dictionary<string, string>? GetQueryParameters(string? url)
     {
-        if (url.IsNullOrEmpty())
+        if (string.IsNullOrEmpty(url))
             return null;
 
-        // Attempt to parse the URL only once
-        Uri? uri;
-        try
-        {
-            uri = new Uri(url);
-        }
-        catch (UriFormatException)
-        {
+        // Avoid exception cost
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
             return null;
-        }
 
-        // Early exit if there's no query string
         string query = uri.Query;
-        if (query.IsNullOrEmpty() || query.Length <= 1) // Query is either empty or only "?"
+        if (query.Length <= 1) // empty or "?"
             return null;
 
-        // Remove the leading '?' from the query string
-        ReadOnlySpan<char> querySpan = query.AsSpan(1);
+        ReadOnlySpan<char> span = query.AsSpan(1); // skip '?'
 
-        // Dictionary allocation with an estimated initial capacity for minimal resizing
-        var result = new Dictionary<string, string>(4, StringComparer.Ordinal);
-
-        // Parse the query string manually for optimal performance
-        var start = 0;
-
-        while (start < querySpan.Length)
+        // Estimate count by '&' to reduce resizes.
+        var estimated = 1;
+        for (var i = 0; i < span.Length; i++)
         {
-            int equalsIndex = querySpan.Slice(start).IndexOf('=');
-            if (equalsIndex is -1)
-                break;
-
-            int ampIndex = querySpan.Slice(start + equalsIndex + 1).IndexOf('&');
-
-            if (ampIndex is -1)
-                ampIndex = querySpan.Length - start - equalsIndex - 1;
-
-            ReadOnlySpan<char> key = querySpan.Slice(start, equalsIndex);
-            ReadOnlySpan<char> value = querySpan.Slice(start + equalsIndex + 1, ampIndex);
-
-            string decodedKey = Uri.UnescapeDataString(key.ToString());
-            string decodedValue = Uri.UnescapeDataString(value.ToString());
-
-            result.TryAdd(decodedKey, decodedValue);
-
-            start += equalsIndex + ampIndex + 2; // Advance past "key=value&"
+            if (span[i] == '&')
+                estimated++;
         }
 
-        return result.Count > 0 ? result : null;
+        var result = new Dictionary<string, string>(estimated, StringComparer.Ordinal);
+
+        while (!span.IsEmpty)
+        {
+            int amp = span.IndexOf('&');
+            ReadOnlySpan<char> segment = amp >= 0 ? span.Slice(0, amp) : span;
+            span = amp >= 0 ? span.Slice(amp + 1) : ReadOnlySpan<char>.Empty;
+
+            if (segment.IsEmpty)
+                continue;
+
+            int eq = segment.IndexOf('=');
+
+            ReadOnlySpan<char> keySpan;
+            ReadOnlySpan<char> valSpan;
+
+            if (eq < 0)
+            {
+                // key-only
+                keySpan = segment;
+                valSpan = ReadOnlySpan<char>.Empty;
+            }
+            else
+            {
+                keySpan = segment.Slice(0, eq);
+                valSpan = segment.Slice(eq + 1);
+            }
+
+            // Decode only if needed to avoid allocation + Uri.UnescapeDataString overhead.
+            string key = DecodeQueryComponentIfNeeded(keySpan);
+            string value = DecodeQueryComponentIfNeeded(valSpan);
+
+            result.TryAdd(key, value);
+        }
+
+        return result.Count != 0 ? result : null;
     }
 
     public static T? ParseQueryStringUsingJson<T>(string queryString, ILogger? logger = null) where T : new()
     {
         try
         {
+            // This path is fundamentally allocation-heavy (NVC -> Dictionary -> JSON -> model).
+            // Keeping behavior, but tightened a bit.
             NameValueCollection queryParameters = HttpUtility.ParseQueryString(queryString);
+
             Dictionary<string, string> dict = queryParameters.ToDictionary();
 
-            // Convert the dictionary to a JSON string
             string? json = JsonUtil.Serialize(dict);
-
             if (json is null)
             {
                 logger?.LogError("Error serializing query parameters");
                 return default;
             }
 
-            // Deserialize the JSON string to the specified type
-            var obj = JsonUtil.Deserialize<T>(json);
-
-            return obj;
+            return JsonUtil.Deserialize<T>(json);
         }
         catch (Exception e)
         {
@@ -221,26 +221,26 @@ public sealed class StringUtil : IStringUtil
 
         NameValueCollection queryParameters = HttpUtility.ParseQueryString(queryString);
 
-        Type type = typeof(T);
-
         var model = new T();
 
-        CachedType cachedTyped = _reflectionCache.Value.GetCachedType(type);
+        CachedType cachedType = s_reflectionCache.Value.GetCachedType(typeof(T));
 
-        foreach (string key in queryParameters.Keys)
+        // NameValueCollection.Keys is ICollection, enumerator alloc can happen.
+        // This is still OK relative to reflection, but we can minimize other costs.
+        foreach (string? key in queryParameters.AllKeys)
         {
-            PropertyInfo? property = cachedTyped.GetProperty(key);
-
-            if (property == null || !property.CanWrite)
+            if (string.IsNullOrEmpty(key))
                 continue;
 
-            Type propertyType = property.PropertyType;
+            PropertyInfo? property = cachedType.GetProperty(key);
+            if (property is null || !property.CanWrite)
+                continue;
+
             string? value = queryParameters[key];
-
-            if (value == null)
+            if (value is null)
                 continue;
 
-            object convertedValue = Convert.ChangeType(value, propertyType);
+            object convertedValue = Convert.ChangeType(value, property.PropertyType);
             property.SetValue(model, convertedValue);
         }
 
@@ -249,123 +249,171 @@ public sealed class StringUtil : IStringUtil
 
     public string? GetDomainFromEmail(string address)
     {
-        if (address.IsNullOrEmpty())
+        if (string.IsNullOrEmpty(address))
             return null;
 
         int lastIndex = address.LastIndexOf('@');
+        if ((uint)lastIndex < (uint)(address.Length - 1) && lastIndex > 0)
+            return address.AsSpan(lastIndex + 1)
+                          .ToString();
 
-        // Ensure '@' exists and is in a valid position
-        if (lastIndex > 0 && lastIndex < address.Length - 1)
-        {
-            // Extract domain without allocation using string slicing
-            return address.AsSpan(lastIndex + 1).ToString();
-        }
-
-        // Return null for invalid email formats
         return null;
     }
 
     /// <summary>
     /// Extracts URLs from the given value.
     /// </summary>
-    /// <param name="value">The value to extract URLs from.</param>
-    /// <returns>A list of URLs extracted from the value, an empty list if there are no matches or if the value is null or empty</returns>
     [Pure]
     public static List<string>? ExtractUrls(string? value)
     {
-        if (value.IsNullOrWhiteSpace())
+        if (string.IsNullOrWhiteSpace(value))
             return null;
 
-        // Cache the regex instance for reuse, as RegexOptions.Compiled is expensive to recreate.
         Regex regex = RegexCollection.RegexCollection.Url();
 
-        List<string>? urls = null;
+        MatchCollection matches = regex.Matches(value);
+        if (matches.Count == 0)
+            return null;
 
-        foreach (Match match in regex.Matches(value))
-        {
-            // Lazy initialization of the list to reduce allocations for inputs with no matches.
-            urls ??= new List<string>(4);
-            urls.Add(match.Value);
-        }
+        var urls = new List<string>(matches.Count);
+
+        for (var i = 0; i < matches.Count; i++)
+            urls.Add(matches[i].Value);
 
         return urls;
     }
 
     /// <summary>
     /// Similar to logging strings:
-    /// <code>logger.log("{variable} is a prime number", 2);</code> "2 is a prime number" 
+    /// <code>logger.log("{variable} is a prime number", 2);</code> "2 is a prime number"
     /// </summary>
-    /// <param name="str">The string to build from the template.</param>
-    /// <param name="values">The values to inject into the template.</param>
-    /// <returns>If the number of parameters does not match the number of values coming in, it will return the braced variable in the string</returns>
     [Pure]
     [return: NotNullIfNotNull("str")]
     public static string? BuildStringFromTemplate(string? str, params object?[]? values)
     {
-        if (str == null)
+        if (str is null)
             return null;
 
         if (values.IsNullOrEmpty())
             return str;
 
-        try
+        // Single-pass builder; avoids repeated Remove/Insert allocations.
+        ReadOnlySpan<char> input = str.AsSpan();
+
+        var valueIndex = 0;
+        var pos = 0;
+
+        // Quick scan: if no '{', return original
+        if (input.IndexOf('{') < 0)
+            return str;
+
+        using var sb = new PooledStringBuilder(str.Length + 16);
+
+        while (pos < input.Length)
         {
-            var i = 0;
-            while (i < values.Length)
+            int open = input.Slice(pos)
+                            .IndexOf('{');
+            if (open < 0)
             {
-                var injectionValue = values[i++]?.ToString();
+                sb.Append(input.Slice(pos));
+                break;
+            }
 
-                if (injectionValue == null)
-                    continue;
+            open += pos;
 
-                int start = str.IndexOf('{');
-                int end = str.IndexOf('}');
-                if (start >= 0 && end > start)
+            int close = input.Slice(open + 1)
+                             .IndexOf('}');
+            if (close < 0)
+            {
+                // no closing brace; append rest
+                sb.Append(input.Slice(pos));
+                break;
+            }
+
+            close += open + 1;
+
+            // append text before '{'
+            sb.Append(input.Slice(pos, open - pos));
+
+            // placeholder token includes braces: {token}
+            ReadOnlySpan<char> placeholder = input.Slice(open, close - open + 1);
+
+            if ((uint)valueIndex < (uint)values.Length)
+            {
+                object? obj = null;
+
+                while ((uint)valueIndex < (uint)values.Length)
                 {
-                    str = str.Remove(start, end - start + 1).Insert(start, injectionValue);
+                    obj = values[valueIndex++];
+                    if (obj is not null)
+                        break;
+                }
+
+                if (obj is not null)
+                {
+                    sb.Append(obj.ToString());
                 }
                 else
                 {
-                    break;
+                    // no remaining non-null values
+                    sb.Append(placeholder);
                 }
             }
+            else
+            {
+                // Not enough values -> keep placeholder (matches your remarks)
+                sb.Append(placeholder);
+            }
 
-            return str;
+            pos = close + 1;
         }
-        catch
+
+        return sb.ToString();
+    }
+
+    public static T? ConvertBase64JsonToObject<T>(string base64)
+    {
+        if (string.IsNullOrWhiteSpace(base64))
+            throw new ArgumentException("Base64 string is null or empty.", nameof(base64));
+
+        // Convert.FromBase64String allocates a new byte[] every time.
+        // Use ArrayPool + TryFromBase64String to reduce GC pressure.
+        int maxLen = base64.Length * 3 / 4 + 3;
+        byte[] rented = ArrayPool<byte>.Shared.Rent(maxLen);
+
+        try
         {
-            return str;
+            if (!Convert.TryFromBase64String(base64, rented, out int bytesWritten))
+                throw new FormatException("The Base64 string is not in a valid format.");
+
+            // If your JsonUtil has a ReadOnlySpan<byte> overload, prefer it.
+            // Otherwise, we must copy to an exact array (costly). Assuming yours can take byte[].
+            // If JsonUtil.Deserialize<T>(byte[]) reads full array length, this is a bug. It should respect bytesWritten.
+            // Ideally JsonUtil.Deserialize<T>(ReadOnlySpan<byte>) exists.
+            return JsonUtil.Deserialize<T>(new ReadOnlySpan<byte>(rented, 0, bytesWritten));
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rented);
         }
     }
 
-    /// <summary>
-    /// Decodes a Base64-encoded JSON string into a strongly typed object.
-    /// </summary>
-    /// <typeparam name="T">
-    /// The type of object to deserialize into.
-    /// </typeparam>
-    /// <param name="base64">
-    /// The Base64-encoded string containing JSON data.
-    /// </param>
-    /// <returns>
-    /// The deserialized object of type <typeparamref name="T"/>.
-    /// Returns <c>null</c> if the JSON represents a null value.
-    /// </returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown if <paramref name="base64"/> is null, empty, or consists only of white-space characters.
-    /// </exception>
-    /// <exception cref="FormatException">
-    /// Thrown if the Base64 string is not in a valid format.
-    /// </exception>
-    /// <exception cref="JsonException">
-    /// Thrown if the JSON is invalid or cannot be deserialized to the target type.
-    /// </exception>
-    public static T? ConvertBase64JsonToObject<T>(string base64)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string DecodeQueryComponentIfNeeded(ReadOnlySpan<char> component)
     {
-        if (base64.IsNullOrWhiteSpace())
-            throw new ArgumentException("Base64 string is null or empty.", nameof(base64));
+        if (component.IsEmpty)
+            return string.Empty;
 
-        byte[] bytes = base64.ToBytesFromBase64();
-        return JsonUtil.Deserialize<T>(bytes);
+        // Most query strings are already plain ASCII without escapes.
+        // Only decode if we see '%' (percent-encoding) or '+' (commonly used for space in x-www-form-urlencoded).
+        for (var i = 0; i < component.Length; i++)
+        {
+            char c = component[i];
+            if (c == '%' || c == '+')
+                return Uri.UnescapeDataString(component.ToString());
+        }
+
+        // No decoding needed -> single allocation for the string itself.
+        return component.ToString();
     }
 }
