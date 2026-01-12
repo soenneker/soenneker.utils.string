@@ -42,10 +42,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Soenneker.Extensions.Enumerable" Version="4.0.590" />
-        <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="4.0.722" />
+        <PackageReference Include="Soenneker.Extensions.Enumerable" Version="4.0.591" />
+        <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="4.0.723" />
         <PackageReference Include="Soenneker.Reflection.Cache" Version="4.0.579" />
-        <PackageReference Include="Soenneker.Utils.Json" Version="4.0.2390" />
+        <PackageReference Include="Soenneker.Utils.Json" Version="4.0.2392" />
         <PackageReference Include="Soenneker.Utils.PooledStringBuilders" Version="4.0.9" />
     </ItemGroup>
 </Project>
