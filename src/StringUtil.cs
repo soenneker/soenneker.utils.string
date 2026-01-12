@@ -266,19 +266,18 @@ public sealed class StringUtil : IStringUtil
     [Pure]
     public static List<string>? ExtractUrls(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (value.IsNullOrWhiteSpace())
             return null;
 
         Regex regex = RegexCollection.RegexCollection.Url();
 
-        MatchCollection matches = regex.Matches(value);
-        if (matches.Count == 0)
-            return null;
+        List<string>? urls = null;
 
-        var urls = new List<string>(matches.Count);
-
-        for (var i = 0; i < matches.Count; i++)
-            urls.Add(matches[i].Value);
+        foreach (ValueMatch match in regex.EnumerateMatches(value))
+        {
+            urls ??= new List<string>(4);
+            urls.Add(value.Substring(match.Index, match.Length));
+        }
 
         return urls;
     }
