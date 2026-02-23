@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
@@ -44,7 +45,8 @@ public sealed class StringUtil : IStringUtil
         for (var i = 0; i < keys.Length; i++)
         {
             string? key = keys[i];
-            if (!string.IsNullOrEmpty(key))
+
+            if (key.HasContent())
             {
                 validCount++;
                 totalChars += key.Length;
@@ -63,7 +65,8 @@ public sealed class StringUtil : IStringUtil
         for (var i = 0; i < keys.Length; i++)
         {
             string? key = keys[i];
-            if (string.IsNullOrEmpty(key))
+
+            if (key.IsNullOrEmpty())
                 continue;
 
             if (!first)
@@ -83,7 +86,7 @@ public sealed class StringUtil : IStringUtil
     [Pure]
     public static string? GetQueryParameter(string? url, string? name)
     {
-        if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(name))
+        if (url.IsNullOrEmpty() || name.IsNullOrEmpty())
             return null;
 
         int queryStartIndex = url.IndexOf('?');
@@ -130,7 +133,7 @@ public sealed class StringUtil : IStringUtil
     [Pure]
     public static Dictionary<string, string>? GetQueryParameters(string? url)
     {
-        if (string.IsNullOrEmpty(url))
+        if (url.IsNullOrEmpty())
             return null;
 
         // Avoid exception cost
@@ -145,9 +148,10 @@ public sealed class StringUtil : IStringUtil
 
         // Estimate count by '&' to reduce resizes.
         var estimated = 1;
+        ref char r0 = ref MemoryMarshal.GetReference(span);
         for (var i = 0; i < span.Length; i++)
         {
-            if (span[i] == '&')
+            if (Unsafe.Add(ref r0, i) == '&')
                 estimated++;
         }
 
@@ -405,10 +409,11 @@ public sealed class StringUtil : IStringUtil
 
         // Most query strings are already plain ASCII without escapes.
         // Only decode if we see '%' (percent-encoding) or '+' (commonly used for space in x-www-form-urlencoded).
+        ref char r0 = ref MemoryMarshal.GetReference(component);
         for (var i = 0; i < component.Length; i++)
         {
-            char c = component[i];
-            if (c == '%' || c == '+')
+            char c = Unsafe.Add(ref r0, i);
+            if (c is '%' or '+')
                 return Uri.UnescapeDataString(component.ToString());
         }
 
