@@ -47,6 +47,6 @@
         <PackageReference Include="Soenneker.Reflection.Cache" Version="4.0.586" />
         <PackageReference Include="Soenneker.Utils.Json" Version="4.0.2434" />
         <PackageReference Include="Soenneker.Utils.PooledStringBuilders" Version="4.0.12" />
-        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="4.0.80" />
+        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="4.0.81" />
     </ItemGroup>
 </Project>
