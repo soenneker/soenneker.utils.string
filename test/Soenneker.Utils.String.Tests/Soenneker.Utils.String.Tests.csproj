@@ -23,7 +23,7 @@
     </ItemGroup>
 
     <ItemGroup><PackageReference Include="Soenneker.Tests.FixturedUnit" Version="4.0.2296" />
-        <PackageReference Include="Soenneker.Utils.Test" Version="4.0.313" /><PackageReference Include="xUnit.v3" Version="3.2.2" /></ItemGroup>
+        <PackageReference Include="Soenneker.Utils.Test" Version="4.0.314" /><PackageReference Include="xUnit.v3" Version="3.2.2" /></ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\Soenneker.Utils.String\Soenneker.Utils.String.csproj" />
