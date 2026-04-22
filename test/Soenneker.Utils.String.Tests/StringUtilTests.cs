@@ -2,25 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AwesomeAssertions;
-using Soenneker.Tests.FixturedUnit;
+using Soenneker.Tests.HostedUnit;
 using Soenneker.Utils.String.Abstract;
 using Soenneker.Utils.String.Tests.Dtos;
-using Xunit;
 
 
 namespace Soenneker.Utils.String.Tests;
 
-[Collection("Collection")]
-public class StringUtilTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public class StringUtilTests : HostedUnitTest
 {
     private readonly IStringUtil _util;
 
-    public StringUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public StringUtilTests(Host host) : base(host)
     {
         _util = Resolve<IStringUtil>(true);
     }
 
-    [Fact]
+    [Test]
     public void ToCombinedId_with_null_should_return_expected()
     {
         string result = StringUtil.ToCombinedId();
@@ -28,7 +27,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("");
     }
 
-    [Fact]
+    [Test]
     public void ToCombinedId_with_double_null_should_return_expected()
     {
         string result = StringUtil.ToCombinedId(null, null);
@@ -36,7 +35,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("");
     }
 
-    [Fact]
+    [Test]
     public void ToCombinedId_with_value_and_null_should_return_expected()
     {
         string result = StringUtil.ToCombinedId("test", null);
@@ -44,7 +43,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("test");
     }
 
-    [Fact]
+    [Test]
     public void ToCombinedId_with_values_should_return_expected()
     {
         string result = StringUtil.ToCombinedId("test", "two");
@@ -52,7 +51,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("test:two");
     }
 
-    [Fact]
+    [Test]
     public void ToCombinedId_with_empty_should_return_expected()
     {
         string result = StringUtil.ToCombinedId("test", "");
@@ -60,7 +59,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("test");
     }
 
-    [Fact]
+    [Test]
     public void ToCombinedId_with_whitespace_should_return_expected()
     {
         string result = StringUtil.ToCombinedId(" ", "test");
@@ -68,7 +67,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be(" :test");
     }
 
-    [Fact]
+    [Test]
     public void GetQueryParameter_should_get_value()
     {
         string? result = StringUtil.GetQueryParameter("https://example.com/page?param1=value1&param2=value2&param3=value3", "param1");
@@ -76,7 +75,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("value1");
     }
 
-    [Fact]
+    [Test]
     public void GetQueryParameter_with_no_parameter_should_return_null()
     {
         string? result = StringUtil.GetQueryParameter("https://example.com/page", "param1");
@@ -84,7 +83,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public void BuildStringFromTemplate_with_one_param()
     {
         string result = StringUtil.BuildStringFromTemplate("{test} blah", 3);
@@ -92,7 +91,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("3 blah");
     }
 
-    [Fact]
+    [Test]
     public void BuildStringFromTemplate_with_two_params()
     {
         string result = StringUtil.BuildStringFromTemplate("{test} blah {test}", 3, 4);
@@ -100,7 +99,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("3 blah 4");
     }
 
-    [Fact]
+    [Test]
     public void BuildStringFromTemplate_with_two_params_not_fully_braced()
     {
         string result = StringUtil.BuildStringFromTemplate("{test} blah {test", 3, 4);
@@ -108,7 +107,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("3 blah {test");
     }
 
-    [Fact]
+    [Test]
     public void BuildStringFromTemplate_with_null_param()
     {
         string result = StringUtil.BuildStringFromTemplate("{test} blah {bar}", 3, null, 5);
@@ -116,7 +115,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("3 blah 5");
     }
 
-    [Fact]
+    [Test]
     public void BuildStringFromTemplate_with_only_null_param()
     {
         string result = StringUtil.BuildStringFromTemplate("{test} blah {bar}", null);
@@ -124,7 +123,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("{test} blah {bar}");
     }
 
-    [Fact]
+    [Test]
     public void BuildStringFromTemplate_with_no_param()
     {
         string result = StringUtil.BuildStringFromTemplate("{test} blah {bar}");
@@ -132,7 +131,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be("{test} blah {bar}");
     }
 
-    [Fact]
+    [Test]
     public void GetDomainFromEmail_should_get_domain()
     {
         const string test = "blah@blah.com";
@@ -153,14 +152,14 @@ public class StringUtilTests : FixturedUnitTest
         result.Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void ExtractUrls_should_extract_multiple()
     {
         List<string>? result = StringUtil.ExtractUrls("https://google.com https://www.foobar.com blue")!;
         result.Count.Should().Be(2);
     }
 
-    [Fact]
+    [Test]
     public void ParseQueryString_ShouldParseStringToModel()
     {
         // Arrange
@@ -175,7 +174,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Param3.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void ParseQueryString_ShouldHandleMissingParameters()
     {
         // Arrange
@@ -190,7 +189,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Param3.Should().BeFalse(); // default bool value
     }
 
-    [Fact]
+    [Test]
     public void ParseQueryString_with_question_ShouldHandleMissingParameters()
     {
         // Arrange
@@ -205,7 +204,7 @@ public class StringUtilTests : FixturedUnitTest
         result.Param3.Should().BeFalse(); // default bool value
     }
 
-    [Fact]
+    [Test]
     public void ParseQueryString_ShouldHandleInvalidConversions()
     {
         // Arrange

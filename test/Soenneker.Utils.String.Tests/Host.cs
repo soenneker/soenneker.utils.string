@@ -1,16 +1,17 @@
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Soenneker.Fixtures.Unit;
+using Soenneker.TestHosts.Unit;
 using Soenneker.Utils.String.Registrars;
 using Soenneker.Utils.Test;
 
 namespace Soenneker.Utils.String.Tests;
 
-public class Fixture : UnitFixture
+public class Host : UnitTestHost
 {
-    public override System.Threading.Tasks.ValueTask InitializeAsync()
+    public override Task InitializeAsync()
     {
         SetupIoC(Services);
 
