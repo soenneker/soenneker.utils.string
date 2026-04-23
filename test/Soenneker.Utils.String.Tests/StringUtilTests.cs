@@ -139,13 +139,13 @@ public class StringUtilTests : HostedUnitTest
         result.Should().Be("blah.com");
     }
 
-    [Theory]
-    [InlineData("blahhttps://google.com", "https://google.com")]
-    [InlineData("blah https://google.com", "https://google.com")]
-    [InlineData("[url=https://google.com]", "https://google.com")]
-    [InlineData("[url=http://google.com]", "http://google.com")]
-    [InlineData("foowww.google.com]", "www.google.com")]
-    [InlineData("google.com", null)]
+    [Test]
+    [Arguments("blahhttps://google.com", "https://google.com")]
+    [Arguments("blah https://google.com", "https://google.com")]
+    [Arguments("[url=https://google.com]", "https://google.com")]
+    [Arguments("[url=http://google.com]", "http://google.com")]
+    [Arguments("foowww.google.com]", "www.google.com")]
+    [Arguments("google.com", null)]
     public void ExtractUrls_should_extract(string input, string? expected)
     {
         string? result = StringUtil.ExtractUrls(input)?.FirstOrDefault();
