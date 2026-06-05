@@ -193,6 +193,13 @@ public sealed class StringUtil : IStringUtil
         return result.Count != 0 ? result : null;
     }
 
+    /// <summary>
+    /// Executes the parse query string using json operation.
+    /// </summary>
+    /// <typeparam name="T">The T type.</typeparam>
+    /// <param name="queryString">The query string.</param>
+    /// <param name="logger">The logger.</param>
+    /// <returns>The result of the operation.</returns>
     public static T? ParseQueryStringUsingJson<T>(string queryString, ILogger? logger = null) where T : new()
     {
         try
@@ -374,6 +381,12 @@ public sealed class StringUtil : IStringUtil
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Converts base64 json to object.
+    /// </summary>
+    /// <typeparam name="T">The T type.</typeparam>
+    /// <param name="base64">The base64.</param>
+    /// <returns>The result of the operation.</returns>
     public static T? ConvertBase64JsonToObject<T>(string base64)
     {
         if (string.IsNullOrWhiteSpace(base64))
