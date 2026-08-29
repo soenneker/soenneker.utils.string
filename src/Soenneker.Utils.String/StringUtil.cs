@@ -83,6 +83,7 @@ public sealed class StringUtil : IStringUtil
     /// <summary>
     /// Retrieves the value of a query parameter from the specified URL.
     /// </summary>
+    /// <returns>The the value of a query parameter from the specified URL.</returns>
     [Pure]
     public static string? GetQueryParameter(string? url, string? name)
     {
@@ -130,6 +131,7 @@ public sealed class StringUtil : IStringUtil
     /// <summary>
     /// Retrieves the query parameters from the specified URL.
     /// </summary>
+    /// <returns>The the query parameters from the specified URL.</returns>
     [Pure]
     public static Dictionary<string, string>? GetQueryParameters(string? url)
     {
@@ -194,12 +196,12 @@ public sealed class StringUtil : IStringUtil
     }
 
     /// <summary>
-    /// Executes the parse query string using json operation.
+    /// Binds URL query-string values to an object by constructing JSON and deserializing it.
     /// </summary>
-    /// <typeparam name="T">The T type.</typeparam>
-    /// <param name="queryString">The query string.</param>
-    /// <param name="logger">The logger.</param>
-    /// <returns>The result of the operation.</returns>
+    /// <typeparam name="T">The delegate result type.</typeparam>
+    /// <param name="queryString">The URL query string.</param>
+    /// <param name="logger">An optional logger for recoverable failures.</param>
+    /// <returns>The bound object, or null on conversion failure.</returns>
     public static T? ParseQueryStringUsingJson<T>(string queryString, ILogger? logger = null) where T : new()
     {
         try
@@ -274,6 +276,7 @@ public sealed class StringUtil : IStringUtil
     /// <summary>
     /// Extracts URLs from the given value.
     /// </summary>
+    /// <returns>Extracts URLs from the given value.</returns>
     [Pure]
     public static List<string>? ExtractUrls(string? value)
     {
@@ -297,6 +300,7 @@ public sealed class StringUtil : IStringUtil
     /// Similar to logging strings:
     /// <code>logger.log("{variable} is a prime number", 2);</code> "2 is a prime number"
     /// </summary>
+    /// <returns>Similar to logging strings: <code>logger.log("{variable} is a prime number", 2);</code> "2 is a prime number".</returns>
     [Pure]
     [return: NotNullIfNotNull("str")]
     public static string? BuildStringFromTemplate(string? str, params object?[]? values)
@@ -382,11 +386,11 @@ public sealed class StringUtil : IStringUtil
     }
 
     /// <summary>
-    /// Converts base64 json to object.
+    /// Decodes Base64-encoded JSON and deserializes it to the requested type.
     /// </summary>
-    /// <typeparam name="T">The T type.</typeparam>
-    /// <param name="base64">The base64.</param>
-    /// <returns>The result of the operation.</returns>
+    /// <typeparam name="T">The delegate result type.</typeparam>
+    /// <param name="base64">Base64 text containing UTF-8 JSON.</param>
+    /// <returns>The object, or null on decoding or deserialization failure.</returns>
     public static T? ConvertBase64JsonToObject<T>(string base64)
     {
         if (string.IsNullOrWhiteSpace(base64))
