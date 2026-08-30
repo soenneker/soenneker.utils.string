@@ -7,6 +7,7 @@ using System.Diagnostics.Contracts;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Logging;
@@ -21,7 +22,6 @@ using Soenneker.Utils.String.Abstract;
 
 namespace Soenneker.Utils.String;
 
-///<inheritdoc cref="IStringUtil"/>
 public sealed class StringUtil : IStringUtil
 {
     private static readonly Lazy<ReflectionCache> _sReflectionCache = new(static () => new ReflectionCache(new Reflection.Cache.Options.ReflectionCacheOptions
@@ -95,6 +95,10 @@ public sealed class StringUtil : IStringUtil
             return null;
 
         ReadOnlySpan<char> query = url.AsSpan(queryStartIndex + 1);
+        int fragmentStart = query.IndexOf('#');
+        if (fragmentStart >= 0)
+            query = query[..fragmentStart];
+
         ReadOnlySpan<char> nameSpan = name.AsSpan();
 
         while (!query.IsEmpty)
@@ -111,14 +115,14 @@ public sealed class StringUtil : IStringUtil
             if (eq < 0)
             {
                 // key-only segments like "?foo&bar=baz"
-                if (segment.SequenceEqual(nameSpan))
+                if (segment.SequenceEqual(nameSpan) || string.Equals(DecodeQueryComponentIfNeeded(segment), name, StringComparison.Ordinal))
                     return string.Empty;
 
                 continue;
             }
 
             ReadOnlySpan<char> key = segment.Slice(0, eq);
-            if (!key.SequenceEqual(nameSpan))
+            if (!key.SequenceEqual(nameSpan) && !string.Equals(DecodeQueryComponentIfNeeded(key), name, StringComparison.Ordinal))
                 continue;
 
             ReadOnlySpan<char> value = segment.Slice(eq + 1);
@@ -390,7 +394,7 @@ public sealed class StringUtil : IStringUtil
     /// </summary>
     /// <typeparam name="T">The delegate result type.</typeparam>
     /// <param name="base64">Base64 text containing UTF-8 JSON.</param>
-    /// <returns>The object, or null on decoding or deserialization failure.</returns>
+    /// <returns>The deserialized object, or null when the JSON value is null.</returns>
     public static T? ConvertBase64JsonToObject<T>(string base64)
     {
         if (string.IsNullOrWhiteSpace(base64))
@@ -414,6 +418,7 @@ public sealed class StringUtil : IStringUtil
         }
         finally
         {
+            CryptographicOperations.ZeroMemory(rented.AsSpan(0, maxLen));
             ArrayPool<byte>.Shared.Return(rented);
         }
     }
@@ -431,7 +436,7 @@ public sealed class StringUtil : IStringUtil
         {
             char c = Unsafe.Add(ref r0, i);
             if (c is '%' or '+')
-                return Uri.UnescapeDataString(component.ToString());
+                return HttpUtility.UrlDecode(component.ToString()) ?? string.Empty;
         }
 
         // No decoding needed -> single allocation for the string itself.

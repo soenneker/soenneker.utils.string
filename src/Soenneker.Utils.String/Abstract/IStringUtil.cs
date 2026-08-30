@@ -9,10 +9,10 @@ namespace Soenneker.Utils.String.Abstract;
 public interface IStringUtil
 {
     /// <summary>
-    /// Retrieves the domain from an email address.
+    /// Returns the text after the last at-sign when non-empty text exists on both sides. This is not email-address validation.
     /// </summary>
     /// <param name="address">The email address.</param>
-    /// <returns>The domain of the email address, or null if the email address is invalid.</returns>
+    /// <returns>The suffix after the last at-sign, or null when it cannot be extracted.</returns>
     [Pure]
     string? GetDomainFromEmail(string address);
 

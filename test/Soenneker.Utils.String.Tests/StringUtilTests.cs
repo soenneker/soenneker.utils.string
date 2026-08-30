@@ -76,6 +76,22 @@ public class StringUtilTests : HostedUnitTest
     }
 
     [Test]
+    public void GetQueryParameter_should_decode_form_components()
+    {
+        string? result = StringUtil.GetQueryParameter("https://example.com/page?return+url=%2Faccount+settings", "return url");
+
+        result.Should().Be("/account settings");
+    }
+
+    [Test]
+    public void GetQueryParameter_should_exclude_fragment()
+    {
+        string? result = StringUtil.GetQueryParameter("https://example.com/page?returnUrl=%2Faccount#section", "returnUrl");
+
+        result.Should().Be("/account");
+    }
+
+    [Test]
     public void GetQueryParameter_with_no_parameter_should_return_null()
     {
         string? result = StringUtil.GetQueryParameter("https://example.com/page", "param1");
