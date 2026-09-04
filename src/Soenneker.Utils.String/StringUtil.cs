@@ -22,6 +22,7 @@ using Soenneker.Utils.String.Abstract;
 
 namespace Soenneker.Utils.String;
 
+/// <inheritdoc cref="IStringUtil" />
 public sealed class StringUtil : IStringUtil
 {
     private static readonly Lazy<ReflectionCache> _sReflectionCache = new(static () => new ReflectionCache(new Reflection.Cache.Options.ReflectionCacheOptions
