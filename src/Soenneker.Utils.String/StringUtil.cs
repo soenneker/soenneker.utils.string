@@ -100,7 +100,6 @@ public sealed class StringUtil : IStringUtil
         if (fragmentStart >= 0)
             query = query[..fragmentStart];
 
-        ReadOnlySpan<char> nameSpan = name.AsSpan();
 
         while (!query.IsEmpty)
         {
@@ -116,14 +115,14 @@ public sealed class StringUtil : IStringUtil
             if (eq < 0)
             {
                 // key-only segments like "?foo&bar=baz"
-                if (segment.SequenceEqual(nameSpan) || string.Equals(DecodeQueryComponentIfNeeded(segment), name, StringComparison.Ordinal))
+                if (QueryNameMatches(segment, name))
                     return string.Empty;
 
                 continue;
             }
 
             ReadOnlySpan<char> key = segment.Slice(0, eq);
-            if (!key.SequenceEqual(nameSpan) && !string.Equals(DecodeQueryComponentIfNeeded(key), name, StringComparison.Ordinal))
+            if (!QueryNameMatches(key, name))
                 continue;
 
             ReadOnlySpan<char> value = segment.Slice(eq + 1);
@@ -192,9 +191,9 @@ public sealed class StringUtil : IStringUtil
 
             // Decode only if needed to avoid allocation + Uri.UnescapeDataString overhead.
             string key = DecodeQueryComponentIfNeeded(keySpan);
-            string value = DecodeQueryComponentIfNeeded(valSpan);
-
-            result.TryAdd(key, value);
+            ref string? value = ref CollectionsMarshal.GetValueRefOrAddDefault(result, key, out bool exists);
+            if (!exists)
+                value = DecodeQueryComponentIfNeeded(valSpan);
         }
 
         return result.Count != 0 ? result : null;
@@ -423,6 +422,11 @@ public sealed class StringUtil : IStringUtil
             ArrayPool<byte>.Shared.Return(rented);
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool QueryNameMatches(ReadOnlySpan<char> key, string name) =>
+        key.SequenceEqual(name) || key.ContainsAny('%', '+') &&
+        string.Equals(DecodeQueryComponentIfNeeded(key), name, StringComparison.Ordinal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string DecodeQueryComponentIfNeeded(ReadOnlySpan<char> component)
