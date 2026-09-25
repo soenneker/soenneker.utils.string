@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization.Metadata;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -206,7 +207,8 @@ public sealed class StringUtil : IStringUtil
     /// <param name="queryString">The URL query string.</param>
     /// <param name="logger">An optional logger for recoverable failures.</param>
     /// <returns>The bound object, or null on conversion failure.</returns>
-    public static T? ParseQueryStringUsingJson<T>(string queryString, ILogger? logger = null) where T : new()
+    /// <param name="typeInfo">Source-generated JSON metadata and serialization options for the value.</param>
+    public static T? ParseQueryStringUsingJson<T>(string queryString, JsonTypeInfo<T> typeInfo, ILogger? logger = null) where T : new()
     {
         try
         {
@@ -216,14 +218,14 @@ public sealed class StringUtil : IStringUtil
 
             Dictionary<string, string> dict = queryParameters.ToDictionary();
 
-            string? json = JsonUtil.Serialize(dict);
+            string? json = JsonUtil.Serialize(dict, LibraryJsonContext.Get<Dictionary<string, string>>());
             if (json is null)
             {
                 logger?.LogError("Error serializing query parameters");
                 return default;
             }
 
-            return JsonUtil.Deserialize<T>(json);
+            return JsonUtil.Deserialize<T>(json, typeInfo);
         }
         catch (Exception e)
         {
@@ -395,7 +397,8 @@ public sealed class StringUtil : IStringUtil
     /// <typeparam name="T">The delegate result type.</typeparam>
     /// <param name="base64">Base64 text containing UTF-8 JSON.</param>
     /// <returns>The deserialized object, or null when the JSON value is null.</returns>
-    public static T? ConvertBase64JsonToObject<T>(string base64)
+    /// <param name="typeInfo">Source-generated JSON metadata and serialization options for the value.</param>
+    public static T? ConvertBase64JsonToObject<T>(string base64, JsonTypeInfo<T> typeInfo)
     {
         if (string.IsNullOrWhiteSpace(base64))
             throw new ArgumentException("Base64 string is null or empty.", nameof(base64));
@@ -412,9 +415,7 @@ public sealed class StringUtil : IStringUtil
 
             // If your JsonUtil has a ReadOnlySpan<byte> overload, prefer it.
             // Otherwise, we must copy to an exact array (costly). Assuming yours can take byte[].
-            // If JsonUtil.Deserialize<T>(byte[]) reads full array length, this is a bug. It should respect bytesWritten.
-            // Ideally JsonUtil.Deserialize<T>(ReadOnlySpan<byte>) exists.
-            return JsonUtil.Deserialize<T>(new ReadOnlySpan<byte>(rented, 0, bytesWritten));
+            return JsonUtil.Deserialize<T>(new ReadOnlySpan<byte>(rented, 0, bytesWritten), typeInfo);
         }
         finally
         {
