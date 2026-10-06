@@ -15,8 +15,6 @@ using Microsoft.Extensions.Logging;
 using Soenneker.Extensions.Enumerable;
 using Soenneker.Extensions.NameValueCollection;
 using Soenneker.Extensions.String;
-using Soenneker.Reflection.Cache;
-using Soenneker.Reflection.Cache.Types;
 using Soenneker.Utils.Json;
 using Soenneker.Utils.PooledStringBuilders;
 using Soenneker.Utils.String.Abstract;
@@ -26,11 +24,6 @@ namespace Soenneker.Utils.String;
 /// <inheritdoc cref="IStringUtil" />
 public sealed class StringUtil : IStringUtil
 {
-    private static readonly Lazy<ReflectionCache> _sReflectionCache = new(static () => new ReflectionCache(new Reflection.Cache.Options.ReflectionCacheOptions
-    {
-        PropertyFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance
-    }));
-
     /// <summary>
     /// For combining any number of strings with a ':' character between them. Will filter out null or empty strings.
     /// </summary>
@@ -234,7 +227,7 @@ public sealed class StringUtil : IStringUtil
         }
     }
 
-    public T ParseQueryString<T>(string queryString) where T : new()
+    public T ParseQueryString<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string queryString) where T : new()
     {
         queryString.ThrowIfNullOrEmpty();
 
@@ -242,7 +235,7 @@ public sealed class StringUtil : IStringUtil
 
         var model = new T();
 
-        CachedType cachedType = _sReflectionCache.Value.GetCachedType(typeof(T));
+        Dictionary<string, PropertyInfo> properties = QueryStringPropertyMap<T>.Value;
 
         // NameValueCollection.Keys is ICollection, enumerator alloc can happen.
         // This is still OK relative to reflection, but we can minimize other costs.
@@ -251,8 +244,7 @@ public sealed class StringUtil : IStringUtil
             if (string.IsNullOrEmpty(key))
                 continue;
 
-            PropertyInfo? property = cachedType.GetProperty(key);
-            if (property is null || !property.CanWrite)
+            if (!properties.TryGetValue(key, out PropertyInfo? property) || !property.CanWrite)
                 continue;
 
             string? value = queryParameters[key];

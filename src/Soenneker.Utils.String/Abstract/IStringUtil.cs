@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Diagnostics.CodeAnalysis;
+using System;
 using System.Diagnostics.Contracts;
 
 namespace Soenneker.Utils.String.Abstract;
@@ -26,5 +27,5 @@ public interface IStringUtil
     /// <exception cref="ArgumentNullException">Thrown when the query string is null.</exception>
     /// <exception cref="InvalidCastException">Thrown when a query string parameter cannot be converted to the corresponding property type.</exception>
     [Pure]
-    T ParseQueryString<T>(string queryString) where T : new();
+    T ParseQueryString<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string queryString) where T : new();
 }
