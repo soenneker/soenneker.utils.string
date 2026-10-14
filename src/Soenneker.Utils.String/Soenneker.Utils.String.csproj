@@ -43,9 +43,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Soenneker.Extensions.Enumerable" Version="4.0.678" />
-        <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="4.0.868" />
-        <PackageReference Include="Soenneker.Utils.Json" Version="4.0.2742" />
-<PackageReference Include="Soenneker.Utils.RegexCollection" Version="4.0.100" />
+        <PackageReference Include="Soenneker.Extensions.Enumerable" Version="4.0.684" />
+        <PackageReference Include="Soenneker.Extensions.NameValueCollection" Version="4.0.876" />
+        <PackageReference Include="Soenneker.Utils.Json" Version="4.0.2751" />
+<PackageReference Include="Soenneker.Utils.RegexCollection" Version="4.0.106" />
     </ItemGroup>
 </Project>
